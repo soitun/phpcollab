@@ -1,9 +1,7 @@
 <?php
 /*
 ** Application name: phpCollab
-** Last Edit page: 04/12/2004
 ** Path by root: ../projects_site/showcalendar.php
-** Authors: Fullo / UrbanFalcon
 ** =============================================================================
 **
 **               phpCollab - Project Management
@@ -16,11 +14,6 @@
 **
 ** DESC: screen: view main calendar page
 **
-** HISTORY:
-**	19/04/2005	-	added from http://www.php-collab.org/community/viewtopic.php?p=6915
-**	21/04/2005	-	added css to events
-**	03/08/2005	-	fix for [ 1241494 ] Broadcasted calendar entrys on project site
-**  06/09/2005	-	fix for show other users tasks in calendar
 ** =============================================================================
 **
 ** TODO
@@ -29,15 +22,26 @@
 ** - can a project team member see the other members tasks? *why not?*
 */
 
+use phpCollab\Validators\DateFormats;
+
 require_once '../includes/library.php';
 
 $setTitle .= " : " . $strings["calendar"];
 
 try {
-    $tasks = $container->getTasksLoader();
     $calendars = $container->getCalendarLoader();
+    $tasks = $container->getTasksLoader();
 } catch (Exception $exception) {
     $logger->error('Exception', ['Error' => $exception->getMessage()]);
+}
+
+$detailCalendar = null;
+
+$dateCalend = $request->query->get('dateCalend');
+$type = $request->query->get('type');
+
+if ($dateCalend && !DateFormats::yearMonthDay($dateCalend)) {
+    phpCollab\Util::headerFunction('./home.php');
 }
 
 $bouton[12] = "over";
@@ -93,24 +97,25 @@ $monthName = date("n", mktime(0, 0, 0, $month, $day, $year));
 $dayName = $dayNameArray[$dayName];
 $monthName = $monthNameArray[$monthName];
 
-$daysmonth = date("t", mktime(0, 0, 0, $month, $day, $year));
-$firstday = date("w", mktime(0, 0, 0, $month, 1, $year));
-$padmonth = date("m", mktime(0, 0, 0, $month, $day, $year));
-$padday = date("d", mktime(0, 0, 0, $month, $day, $year));
+$daysMonth = date("t", mktime(0, 0, 0, $month, $day, $year));
+$firstDay = date("w", mktime(0, 0, 0, $month, 1, $year));
+$padMonth = date("m", mktime(0, 0, 0, $month, $day, $year));
+$padDay = date("d", mktime(0, 0, 0, $month, $day, $year));
 
-if ($firstday == 0) {
-    $firstday = 7;
+if ($firstDay == 0) {
+    $firstDay = 7;
 }
 
 if ($type == "calendDetail") {
-    if (empty($dateEnreg) && $id != "") {
+    if (empty($dateEnreg) && !empty($id)) {
         $dateEnreg = $id;
     }
 
     $detailCalendar = $calendars->getCalendarDetail($session->get("id"), $dateEnreg);
 
     if (empty($detailCalendar)) {
-        header("Location:../projects_site/showcalendar.php");
+        die('No calendar detail found.');
+//        header("Location:../projects_site/showcalendar.php");
     }
 
     $reminder = $detailCalendar["cal_reminder"];
@@ -137,9 +142,14 @@ if ($type == "calendDetail") {
 
     $block1 = new phpCollab\Block();
 
-    if (isset($error) && !empty($error)) {
-        $block1->headingError($strings["errors"]);
-        $block1->contentError($error);
+    if ($session->getFlashBag()->has('errors')) {
+        $blockPage->headingError($strings["errors"]);
+        foreach ($session->getFlashBag()->get('errors') as $error) {
+            $blockPage->contentError($error);
+        }
+    } else if (!empty($error)) {
+        $blockPage->headingError($strings["errors"]);
+        $blockPage->contentError($error);
     }
 
     $block1->heading($strings["calendar"] . " " . $strings["details"]);
@@ -253,10 +263,13 @@ if ($type == "monthPreview") {
     $block2 = new phpCollab\Block();
     $block2->heading("$monthName $year");
 
+    /**
+     * Print out the day of the week names
+     */
     echo "<table style='width: 100%' class='listing nonStriped'><tr>";
 
-    for ($daynumber = 1; $daynumber < 8; $daynumber++) {
-        echo "<td style='width: 14%; vertical-align: middle; text-align: center' class='calendDays'>$dayNameArray[$daynumber]</td>";
+    for ($dayNumber = 1; $dayNumber < 8; $dayNumber++) {
+        echo "<td style='width: 14%; vertical-align: middle; text-align: center' class='calendDays'>$dayNameArray[$dayNumber]</td>";
     }
 
     echo "</tr></table>";
@@ -277,13 +290,13 @@ if ($type == "monthPreview") {
         }
     }
 
-    $weekremain = ($daysmonth - (7 - ($firstday - 1)));
+    $weekremain = ($daysMonth - (7 - ($firstDay - 1)));
     $daysremain = ($weekremain - (floor($weekremain / 7)) * 7);
     $colsremain = ((7 - $daysremain));
 
-    for ($i = 1; $i < $daysmonth + $firstday; $i++) {
-        $a = $i - $firstday + 1;
-        $day = $i - $firstday + 1;
+    for ($i = 1; $i < $daysMonth + $firstDay; $i++) {
+        $a = $i - $firstDay + 1;
+        $day = $i - $firstDay + 1;
         if (strlen($a) == 1) {
             $a = "0$a";
         }
@@ -295,9 +308,10 @@ if ($type == "monthPreview") {
         $todayClass = "";
         $dayRecurr = $calendars->dayOfWeek(mktime(0, 0, 0, $month, $a, $year));
 
+        // What is this doing?
         $listCalendarScan = $calendars->openCalendarDay($session->get("id"), $dateLink, $dayRecurr);
 
-        if (($i < $firstday) || ($a == "00")) {
+        if (($i < $firstDay) || ($a == "00")) {
             echo "<td  style='width: 14%' class='even'>&nbsp;</td>";
         } else {
             if ($dateLink == $dateToday) {

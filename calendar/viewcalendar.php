@@ -1,9 +1,7 @@
 <?php
 /*
 ** Application name: phpCollab
-** Last Edit page: 04/12/2004
 ** Path by root: ../calendar/viewcalendar.php
-** Authors: Ceam / Fullo
 ** =============================================================================
 **
 **               phpCollab - Project Management
@@ -16,13 +14,6 @@
 **
 ** DESC: screen: view main calendar page
 **
-** HISTORY:
-**  2003-10-23  -   added new document info
-**  15/09/2004  -   added broadcast support and subtask view
-**  10/11/2004  -   fixed http://www.php-collab.org/community/viewtopic.php?t=1697
-**  04/12/2004  -   fixed [ 1077236 ] Calendar bug in Client's Project site
-**  21/04/2005  -   added css to calendar events
-**  25/04/2006  -   replaced JavaScript Calendar functions with new DHTML calendar files.
 ** -----------------------------------------------------------------------------
 ** TO-DO:
 **  add the iCal format import
@@ -34,6 +25,7 @@
 
 
 use phpCollab\Util;
+use phpCollab\Validators\DateFormats;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -51,6 +43,10 @@ $detailCalendar = null;
 $id = $request->query->get('id');
 $type = $request->query->get('type');
 $dateCalend = $request->query->get('dateCalend');
+
+if ($dateCalend && !DateFormats::yearMonthDay($dateCalend)) {
+    phpCollab\Util::headerFunction('../calendar/viewcalendar.php');
+}
 
 if (empty($type)) {
     $type = "monthPreview";
@@ -231,26 +227,27 @@ if ($type == "calendEdit") {
     $bodyCommand = 'onLoad="document.calendForm.shortname.focus()"';
 }
 
-/** Do the title calcs here.. we __HAVE__ to do it before the include **/
+/** Do the title creations here... we __HAVE__ to do it before the include statement **/
 switch ($type) {
     case 'monthPreview':
-        $setTitle .= " : View Calendar ($monthName $year)";
+        $setTitle .= " : " . $strings["view_calendar"] . " ($monthName $year)";
         break;
     case 'dayList':
-        $setTitle .= " : View Calendar ($dateCalend)";
+        $setTitle .= " : " . $strings["view_calendar"] . " ($dateCalend)";
         break;
     case 'calendEdit':
         if ($id == "") {
-            $setTitle .= " : Add Calendar Entry ($dateCalend)";
+            $setTitle .= " : " . $strings["calendar_add_entry"] . " ($dateCalend)";
         }
         if ($id != "") {
-            $setTitle .= " : Edit Calendar Entry ($dateCalend - " . $detailCalendar['cal_shortname'] . ")";
+            $setTitle .= " : " . $strings["calendar_edit_entry"] . " ($dateCalend - " . $detailCalendar['cal_shortname'] . ")";
         }
         break;
     case 'calendDetail':
-        $setTitle .= " : Calendar Entry (" . $detailCalendar['cal_shortname'] . ")";
+        $setTitle .= " : " . $strings["calendar_entry"] . " (" . $detailCalendar['cal_shortname'] . ")";
         break;
 }
+
 $includeCalendar = true; //Include Javascript files for the pop-up calendar
 include APP_ROOT . '/views/layout/header.php';
 
@@ -586,6 +583,7 @@ if ($type == "dayList") {
     $dayRecurr = phpCollab\Util::dayOfWeek(mktime(12, 12, 12, $month, $day, $year));
 
     $listCalendar = $calendars->openCalendarDay($session->get("id"), $dateCalend, $dayRecurr, $block1->sortingValue);
+
     $comptListCalendar = count($listCalendar);
 
     if ($comptListCalendar != "0") {
@@ -657,6 +655,7 @@ if ($type == "monthPreview") {
     $comptListSubtasks = count($listSubtasks);
 
     $comptListCalendarScan = "0";
+
     foreach ($listTasks as $task) {
         if (substr($task['tas_start_date'], 0, 7) == substr($dateCalend, 0, 7)) {
             $gantt = "true";
