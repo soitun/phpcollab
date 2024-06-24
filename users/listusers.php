@@ -20,7 +20,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../administration/admin.php?"
 $blockPage->itemBreadcrumbs($strings["user_management"]);
 $blockPage->closeBreadcrumbs();
 
-if (!empty($msg)) {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -29,6 +31,17 @@ $block1 = new phpCollab\Block();
 
 $block1->form = "ulU";
 $block1->openForm("../users/listusers.php#" . $block1->form . "Anchor", null, $csrfHandler);
+
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
+}
+
 
 $block1->heading($strings["user_management"]);
 

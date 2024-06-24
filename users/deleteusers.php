@@ -1,5 +1,6 @@
 <?php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -86,7 +87,7 @@ if ($request->isMethod('post')) {
         ]);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
-        $msg = 'permissiondenied';
+        Messages::addError(sprintf($strings["error_message"], $strings["no_permissions"]), $session);
     }
 }
 
@@ -99,7 +100,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../users/listusers.php?", $st
 $blockPage->itemBreadcrumbs($strings["delete_users"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -108,6 +111,16 @@ $block1 = new phpCollab\Block();
 
 $block1->form = "user_delete";
 $block1->openForm("../users/deleteusers.php", null, $csrfHandler);
+
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
+}
 
 $block1->heading($strings["delete_users"]);
 

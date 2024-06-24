@@ -1,5 +1,6 @@
 <?php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -9,7 +10,8 @@ $orgId = $request->query->get('orgid');
 $userId = $request->query->get('userid');
 
 if (empty($userId) || empty($orgId)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 try {
@@ -97,10 +99,10 @@ if ($request->isMethod('post')) {
                 }
 
                 if (!ctype_alnum($user_login)) {
-                    $error = $strings["alpha_only"];
+                    Messages::addError(sprintf($strings["error_message"], $strings["alpha_only"]), $session);
                 } else {
                     if ($members->checkIfMemberExists($user_login, $user_login_old)) {
-                        $error = $strings["user_already_exists"];
+                        Messages::addError(sprintf($strings["error_message"], $strings["user_already_exists"]), $session);
                     } else {
                         try {
                             $updated = $members->updateMember($userId, $user_login, $user_full_name, $user_email_work,
@@ -111,14 +113,15 @@ if ($request->isMethod('post')) {
 
                                 //test if 2 passwords match
                                 if ($user_password != $user_password_confirm) {
-                                    $error = $strings["new_password_error"];
+                                    Messages::addError(sprintf($strings["error_message"], $strings["new_password_error"]), $session);
                                 } else {
                                     try {
                                         $members->setPassword($userId, $user_password);
                                     } catch (Exception $e) {
                                         $logger->error($e->getMessage());
-                                        $msg = "genericError";
+                                        Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
                                     }
+
                                     phpCollab\Util::headerFunction("../clients/viewclient.php?msg=update&id=$user_organization");
                                 }
                             } else {
@@ -132,7 +135,7 @@ if ($request->isMethod('post')) {
                             }
                         } catch (Exception $e) {
                             $logger->error($e->getMessage());
-                            $msg = "genericError";
+                            Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
                         }
                     }
                 }
@@ -146,7 +149,7 @@ if ($request->isMethod('post')) {
         ]);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
-        $msg = 'permissiondenied';
+        Messages::addError(sprintf($strings["error_message"], $strings["no_permissions"]), $session);
     }
 }
 
@@ -176,7 +179,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../users/viewclientuser.php?o
 $blockPage->itemBreadcrumbs($strings["edit_client_user"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -186,9 +191,14 @@ $block1 = new phpCollab\Block();
 $block1->form = "client_user_edit";
 $block1->openForm("../users/updateclientuser.php?action=update&orgid=$orgId&userid=" . $userId, null, $csrfHandler);
 
-if (isset($error) && $error != "") {
-    $block1->headingError($strings["errors"]);
-    $block1->contentError($error);
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
 }
 
 $block1->heading($strings["edit_client_user"] . " : $user_name");

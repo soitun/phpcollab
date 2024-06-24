@@ -1,5 +1,6 @@
 <?php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -22,7 +23,8 @@ if (!$orgId) {
 $clientDetail = $organizations->checkIfClientExistsById($orgId);
 
 if (empty($clientDetail)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 if ($request->isMethod('post')) {
@@ -179,9 +181,10 @@ if ($request->isMethod('post')) {
             '$_SERVER["REMOTE_ADDR"]' => $request->server->get("REMOTE_ADDR"),
             '$_SERVER["HTTP_X_FORWARDED_FOR"]'=> $request->server->get('HTTP_X_FORWARDED_FOR')
         ]);
+        Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
-        $msg = 'permissiondenied';
+        Messages::addError(sprintf($strings["error_message"], $strings["no_permissions"]), $session);
     }
 }
 
@@ -197,7 +200,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../clients/viewclient.php?id=
 $blockPage->itemBreadcrumbs($strings["add_client_user"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -207,9 +212,14 @@ $block1 = new phpCollab\Block();
 $block1->form = "client_user_add";
 $block1->openForm("../users/addclientuser.php?organization=" . $orgId, null, $csrfHandler);
 
-if (isset($error) && $error != "") {
-    $block1->headingError($strings["errors"]);
-    $block1->contentError($error);
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
 }
 
 $block1->heading($strings["add_client_user"]);
@@ -217,7 +227,7 @@ $block1->heading($strings["add_client_user"]);
 $block1->openContent();
 $block1->contentTitle($strings["enter_user_details"]);
 
-$block1->contentRow($strings["user_name"],
+$block1->contentRow("* " . $strings["user_name"],
     '<input size="24" style="width: 250px;" maxlength="16" type="text" name="user_name" value="' . $request->request->get('user_name') . '" required>');
 $block1->contentRow($strings["full_name"],
     '<input size="24" style="width: 250px;" maxlength="64" type="text" name="full_name" value="' . $request->request->get('full_name') . '" required>');
@@ -240,7 +250,7 @@ foreach ($organizationsList as $org) {
 $selectOrganization .= "</select>";
 $block1->contentRow($strings["organization"], $selectOrganization);
 
-$block1->contentRow($strings["email"],
+$block1->contentRow("* " . $strings["email"],
     '<input size="24" style="width: 250px;" maxlength="128" type="email" name="email_work" value="' . $request->request->get('email_work') . '" required>');
 $block1->contentRow($strings["work_phone"],
     '<input size="14" style="width: 150px;" maxlength="32" type="tel" name="phone_work" value="' . $request->request->get('phone_work') . '">');
@@ -254,9 +264,9 @@ $block1->contentRow($strings["comments"],
     '<textarea style="width: 400px; height: 50px;" name="comments" cols="35" rows="2">' . $request->request->get('comments') . '</textarea>');
 
 $block1->contentTitle($strings["enter_password"]);
-$block1->contentRow($strings["password"],
+$block1->contentRow("* " . $strings["password"],
     '<input size="24" style="width: 250px;" maxlength="16" type="password" name="password" value="" required>');
-$block1->contentRow($strings["confirm_password"],
+$block1->contentRow("* " . $strings["confirm_password"],
     '<input size="24" style="width: 250px;" maxlength="16" type="password" name="password_confirm" value="" required>');
 $block1->contentRow("", '<button type="submit" name="action" value="add">' . $strings["save"] . '</button>');
 

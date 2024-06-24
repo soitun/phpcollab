@@ -25,6 +25,7 @@
 */
 
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -61,9 +62,11 @@ if ($request->isMethod('post')) {
                     $setDefaultOrg = $projects->setDefaultOrg($id);
                     $deleteMembers = $members->deleteMemberByOrgId($id);
 
-                    phpCollab\Util::headerFunction("../clients/listclients.php?msg=delete");
+                    Messages::add(sprintf($strings["success"], $strings["deletion_succeeded"]), $session);
+                    phpCollab\Util::headerFunction("../clients/listclients.php");
                 } catch (Exception $e) {
                     echo 'Message: ' . $e->getMessage();
+                    Messages::addError(sprintf($strings["error_message"], $e->getMessage()), $session);
                 }
             }
         }
@@ -73,9 +76,10 @@ if ($request->isMethod('post')) {
             '$_SERVER["REMOTE_ADDR"]' => $request->server->get("REMOTE_ADDR"),
             '$_SERVER["HTTP_X_FORWARDED_FOR"]'=> $request->server->get('HTTP_X_FORWARDED_FOR')
         ]);
+        Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
-        $msg = 'permissiondenied';
+        Messages::addError(sprintf($strings["error_message"], $strings["no_permissions"]), $session);
     }
 }
 
@@ -90,7 +94,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../clients/listclients.php?",
 $blockPage->itemBreadcrumbs($strings["delete_organizations"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -99,6 +105,16 @@ $block1 = new phpCollab\Block();
 
 $block1->form = "saP";
 $block1->openForm("../clients/deleteclients.php?action=delete&id=$id", null, $csrfHandler);
+
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
+}
 
 $block1->heading($strings["delete_organizations"]);
 

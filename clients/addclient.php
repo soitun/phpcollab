@@ -1,5 +1,6 @@
 <?php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -57,8 +58,8 @@ if ($request->isMethod('post')) {
                     }
                 }
             } catch (Exception $exception) {
-                $logger->critical('Add Client Error ' . $e->getMessage(), []);
-                $msg = 'clientAddError';
+                $logger->critical('Add Client Error ' . $e->getMessage());
+                Messages::addError(sprintf($strings["error_message"], $strings["client_error_add"]), $session);
             }
         }
     } catch (InvalidCsrfTokenException $csrfTokenException) {
@@ -69,6 +70,7 @@ if ($request->isMethod('post')) {
         ]);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
+        Messages::addError(sprintf($strings["error_message"], $strings["client_error_add"]), $session);
         $error = $strings["client_error_add"];
     }
 }
@@ -86,7 +88,9 @@ $blockPage->itemBreadcrumbs($strings["add_organization"]);
 
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -98,10 +102,16 @@ echo <<<FORM
     <input type="hidden" name="csrf_token" value="{$csrfHandler->getToken()}">
 FORM;
 
-if (!empty($error)) {
+if ($session->getFlashBag()->has('errors')) {
+    $block1->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors') as $error) {
+        $block1->contentError($error);
+    }
+} else if (!empty($error)) {
     $block1->headingError($strings["errors"]);
     $block1->contentError($error);
 }
+
 
 $block1->heading($strings["add_organization"]);
 

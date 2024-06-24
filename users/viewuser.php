@@ -37,7 +37,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../users/listusers.php?", $st
 $blockPage->itemBreadcrumbs($userDetail["mem_login"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -47,9 +49,14 @@ $block1 = new phpCollab\Block();
 $block1->form = "userD";
 $block1->openForm("../users/viewuser.php#" . $block1->form . "Anchor", null, $csrfHandler);
 
-if (isset($error) && $error != "") {
-    $block1->headingError($strings["errors"]);
-    $block1->contentError($error);
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
 }
 
 $block1->heading($strings["user_profile"]);

@@ -1,5 +1,6 @@
 <?php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -9,7 +10,8 @@ $id = $request->query->get('id');
 
 // If no ID is passed in, then we can not proceed.  Redirect back to the client list
 if (empty($id)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 //Get client organization
@@ -21,7 +23,8 @@ try {
 }
 
 if (empty($clientDetail)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::add($strings["blank_client"], $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 if ($request->isMethod('post')) {
@@ -70,12 +73,14 @@ if ($request->isMethod('post')) {
                     $organizations->updateClient($id, $name, $address, $phone, $url, $email, $comments, $owner,
                         $hourlyRate);
 
-                    phpCollab\Util::headerFunction("../clients/viewclient.php?id=$id&msg=update");
+                    Messages::add($strings["update_success"], $session);
+                    phpCollab\Util::headerFunction("../clients/viewclient.php?id=$id");
                 }
 
             } catch (Exception $exception) {
                 $logger->critical('Edit Client Error ' . $exception->getMessage(), []);
-                $msg = 'clientEditError';
+
+                Messages::addError(sprintf($strings["error_message"], $strings["client_error_edit"]), $session);
             }
         }
     } catch (InvalidCsrfTokenException $csrfTokenException) {
@@ -86,7 +91,7 @@ if ($request->isMethod('post')) {
         ]);
     } catch (Exception $e) {
         $logger->critical('Exception', ['Error' => $e->getMessage()]);
-        $error = $strings["client_error_edit"];
+        Messages::addError(sprintf($strings["error_message"], $strings["client_error_edit"]), $session);
     }
 }
 
@@ -114,7 +119,9 @@ $blockPage->itemBreadcrumbs($strings["edit_organization"]);
 
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -126,7 +133,12 @@ echo <<<FORM
     <input type="hidden" name="csrf_token" value="{$csrfHandler->getToken()}">
 FORM;
 
-if (!empty($error)) {
+if ($session->getFlashBag()->has('errors')) {
+    $block1->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $block1->contentError($error);
+    }
+} else if (!empty($error)) {
     $block1->headingError($strings["errors"]);
     $block1->contentError($error);
 }

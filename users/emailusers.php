@@ -3,6 +3,7 @@
 #Status page: 0
 #Path by root: ../users/emailusers.php
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -23,7 +24,8 @@ try {
 
     // If no ID passed, then return with error
     if (empty($id)) {
-        header("Location:../users/listusers.php?msg=blankUser");
+        Messages::addError(sprintf($strings["error_message"], $strings["blank_user"]), $session);
+        header("Location:../users/listusers.php");
     }
 
     // Let's get the user(s) and see if they have email addresses, if they don't then we want to display and error and/or redirect back.
@@ -31,7 +33,8 @@ try {
 
     // If no member found, then return with error
     if (empty($listMembers)) {
-        header("Location:../users/listusers.php?msg=blankUser");
+        Messages::addError(sprintf($strings["error_message"], $strings["blank_user"]), $session);
+        header("Location:../users/listusers.php");
     }
 
     $excludedList = [];
@@ -89,14 +92,15 @@ try {
                                 null, null, $signature);
                         } catch (Exception $e) {
                             $logger->error($e->getMessage());
-                            $msg = "genericError";
+                            Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
                         }
                     }
 
+                    Messages::add(sprintf($strings["success"], $strings["email_sent"]), $session);
                     if ($session->get("profile") == "0") {
-                        header("Location:../users/listusers.php?id={$clientDetail["org_id"]}&msg=email");
+                        header("Location:../users/listusers.php?id={$clientDetail["org_id"]}");
                     } else {
-                        header("Location:../general/home.php?msg=email");
+                        header("Location:../general/home.php");
                     }
                 }
             }
@@ -108,7 +112,7 @@ try {
             ]);
         } catch (Exception $e) {
             $logger->critical('Exception', ['Error' => $e->getMessage()]);
-            $msg = 'permissiondenied';
+            Messages::addError(sprintf($strings["error_message"], $strings["genericError"]), $session);
         }
     }
 

@@ -1,5 +1,7 @@
 <?php
 
+use phpCollab\Messages\Messages;
+
 $checkSession = "true";
 require_once '../includes/library.php';
 
@@ -15,7 +17,8 @@ $orgId = $request->query->get('organization');
 $userId = $request->query->get('id');
 
 if (empty($userId) || empty($orgId)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 $userDetail = $members->getMemberById($userId);
@@ -30,7 +33,8 @@ if ($clientsFilter == "true" && $session->get("profile") == "2") {
 
     $memberTest = $teams->getTeamByTeamMemberAndOrgId($session->get("id"), $memberOrganization);
     if (empty($memberTest)) {
-        phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+        Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+        phpCollab\Util::headerFunction("../clients/listclients.php");
     }
 } elseif ($clientsFilter == "true" && $session->get("profile") == "1") {
     $detailClient = $organizations->getOrganizationByIdAndOwner($orgId, $session->get("id"));
@@ -41,7 +45,8 @@ if ($clientsFilter == "true" && $session->get("profile") == "2") {
 $comptDetailClient = "0";
 
 if (empty($detailClient)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 include APP_ROOT . '/views/layout/header.php';
@@ -59,9 +64,14 @@ $block1 = new phpCollab\Block();
 $block1->form = "cuserD";
 $block1->openForm("../users/viewclientuser.php#" . $block1->form . "Anchor", null, $csrfHandler);
 
-if (isset($error) && $error != "") {
-    $block1->headingError($strings["errors"]);
-    $block1->contentError($error);
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
 }
 
 $block1->heading($strings["client_user"]);

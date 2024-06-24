@@ -3,6 +3,8 @@
 #Status page: 0
 #Path by root: ../topics/viewtopic.php
 
+use phpCollab\Messages\Messages;
+
 $checkSession = "true";
 require_once '../includes/library.php';
 
@@ -18,18 +20,19 @@ $topicId = $request->query->get('id');
 
 if ($request->query->get('action') == "closeTopic") {
     $topics->closeTopic($topicId);
-    $num = "1";
-    $msg = "closeTopic";
+    $numberOfDiscussions = "1";
+    Messages::add(sprintf($strings["discussion_closed_success"], $numberOfDiscussions), $session);
 }
 
 if ($request->query->get('action') == "addToSite") {
-    $topics->publishTopic($topicId);
-    $msg = "addToSite";
+    ($topics->publishTopic($topicId)) ?
+        Messages::add(sprintf($strings["success"], $strings["add_project_site_success"]), $session) :
+        Messages::addError(sprintf($strings["error"], 'topic not published'), $session);
 }
 
 if ($request->query->get('action') == "removeToSite") {
     $topics->unPublishTopic($topicId);
-    $msg = "removeToSite";
+    Messages::add(sprintf($strings["success"], $strings["remove_project_site_success"]), $session);
 }
 
 $detailTopic = $topics->getTopicByTopicId($topicId);
@@ -67,7 +70,9 @@ $blockPage->itemBreadcrumbs($blockPage->buildLink("../topics/listtopics.php?proj
 $blockPage->itemBreadcrumbs($detailTopic["top_subject"]);
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }
@@ -77,9 +82,14 @@ $block1 = new phpCollab\Block();
 $block1->form = "tdP";
 $block1->openForm("./viewtopic.php", null, $csrfHandler);
 
-if (!empty($error)) {
-    $block1->headingError($strings["errors"]);
-    $block1->contentError($error);
+if ($session->getFlashBag()->has('errors')) {
+    $blockPage->headingError($strings["errors"]);
+    foreach ($session->getFlashBag()->get('errors', []) as $error) {
+        $blockPage->contentError($error);
+    }
+} else if (!empty($error)) {
+    $blockPage->headingError($strings["errors"]);
+    $blockPage->contentError($error);
 }
 
 $block1->heading($strings["discussion"] . " : " . $detailTopic["top_subject"]);

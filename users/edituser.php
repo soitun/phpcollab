@@ -28,6 +28,7 @@
 */
 
 
+use phpCollab\Messages\Messages;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
 
 $checkSession = "true";
@@ -174,7 +175,7 @@ if (!empty($request->query->get('id'))) {
             ]);
         } catch (Exception $e) {
             $logger->critical('Exception', ['Error' => $e->getMessage()]);
-            $msg = 'permissiondenied';
+            Messages::add(sprintf($strings["error_message"], $strings["no_permissions"]), $session);
         }
     }
 
@@ -325,7 +326,9 @@ if ($request->query->get("id") != "") {
 }
 $blockPage->closeBreadcrumbs();
 
-if ($msg != "") {
+if ($session->getFlashBag()->has('message')) {
+    $blockPage->messageBox( $session->getFlashBag()->get('message')[0] );
+} else if ($msg != "") {
     include '../includes/messages.php';
     $blockPage->messageBox($msgLabel);
 }

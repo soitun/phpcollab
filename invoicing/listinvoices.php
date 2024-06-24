@@ -1,5 +1,7 @@
 <?php
 
+use phpCollab\Messages\Messages;
+
 $checkSession = "true";
 require_once '../includes/library.php';
 
@@ -37,7 +39,8 @@ if ($clientsFilter == "true" && $session->get("profile") == "2") {
     $comptMemberTest = count($memberTest["tea_id"]);
 
     if ($comptMemberTest == "0") {
-        phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+        Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+        phpCollab\Util::headerFunction("../clients/listclients.php");
     } else {
         $clientDetail = $organizations->getOrganizationById($clientId);
     }
@@ -50,7 +53,8 @@ if ($clientsFilter == "true" && $session->get("profile") == "2") {
 }
 
 if (empty($clientDetail)) {
-    phpCollab\Util::headerFunction("../clients/listclients.php?msg=blankClient");
+    Messages::addError(sprintf($strings["error_message"], $strings["blank_organization"]), $session);
+    phpCollab\Util::headerFunction("../clients/listclients.php");
 }
 
 include APP_ROOT . '/views/layout/header.php';
