@@ -203,10 +203,12 @@ if (!$session->has('csrfToken')) {
         error_log('Unable to set csrfToken: ' . $e->getMessage());
     }
 }
-$csrfHandler = $container->setCSRFHandler($session);
+
+$container->setCSRFHandler($session);
+$csrfHandler = $container->getCSRFHandler();
 
 /*
- * This code should be called if $checkSession = true and we are not in demo mode.
+ * This code should be called if $checkSession = true, and we are not in demo mode.
  * If a session is not active, then redirect to the login page.
  */
 if ($checkSession != "false" && $session->get('demo') != "true") {
