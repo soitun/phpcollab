@@ -27,9 +27,9 @@ if ($projectDetail) {
     $idPriority = $projectDetail["pro_priority"];
 
     $export_csv = [];
-    array_push($export_csv, array($strings["this_report_generated_by"]));
-    array_push($export_csv, array($strings["project"]));
-    array_push($export_csv, array(
+    $export_csv[] = array($strings["this_report_generated_by"], ' @ ' . date('Y-m-d'));
+    $export_csv[] = array($strings["project"]);
+    $export_csv[] = array(
         $strings["name"],
         $strings["description"],
         $strings["owner"],
@@ -37,8 +37,8 @@ if ($projectDetail) {
         $strings["status"],
         $strings["created"],
         $strings["organization"]
-    ));
-    array_push($export_csv, array(
+    );
+    $export_csv[] = array(
         $projectDetail["pro_name"],
         $projectDetail["pro_description"],
         $projectDetail["pro_mem_login"],
@@ -46,32 +46,30 @@ if ($projectDetail) {
         $status[$idStatus],
         Util::createDate($projectDetail["pro_created"], $session->get("timezone")),
         $projectDetail["pro_org_name"]
-    ));
+    );
 
     $listTasks = $tasks->getTasksByProjectId($request->query->get("id"));
 
     if ($listTasks) {
-        array_push($export_csv, array($strings["tasks"]));
-        array_push($export_csv,
-            array(
-                $strings["name"],
-                $strings["description"],
-                $strings["owner"],
-                $strings["priority"],
-                $strings["status"],
-                $strings["created"],
-                $strings["start_date"],
-                $strings["due_date"],
-                $strings["complete_date"],
-                $strings["completion"],
-                $strings["scope_creep"],
-                $strings["estimated_time"],
-                $strings["actual_time"],
-                $strings["published"],
-                $strings["comments"],
-                $strings["assigned"],
-                $strings["assigned_to"]
-            )
+        $export_csv[] = array($strings["tasks"]);
+        $export_csv[] = array(
+            $strings["name"],
+            $strings["description"],
+            $strings["owner"],
+            $strings["priority"],
+            $strings["status"],
+            $strings["created"],
+            $strings["start_date"],
+            $strings["due_date"],
+            $strings["complete_date"],
+            $strings["completion"],
+            $strings["scope_creep"],
+            $strings["estimated_time"],
+            $strings["actual_time"],
+            $strings["published"],
+            $strings["comments"],
+            $strings["assigned"],
+            $strings["assigned_to"]
         );
 
         foreach ($listTasks as $task) {
@@ -86,26 +84,24 @@ if ($projectDetail) {
             if ($task["tas_complete_date"] != "" && $task["tas_complete_date"] != "--" && $task["tas_due_date"] != "--") {
                 $diff = phpCollab\Util::diffDate($task["tas_complete_date"], $task["tas_due_date"]);
             }
-            array_push($export_csv,
-                array(
-                    $task["tas_name"],
-                    $task["tas_description"],
-                    $task["tas_mem2_login"],
-                    $priority[$idPriority],
-                    $status[$idStatus],
-                    phpCollab\Util::createDate($task["tas_created"], $session->get("timezone")),
-                    $task["tas_start_date"],
-                    $task["tas_due_date"],
-                    $task["tas_complete_date"],
-                    $complValue,
-                    $diff,
-                    $task["tas_estimated_time"],
-                    $task["tas_actual_time"],
-                    $statusPublish[$idPublish],
-                    $task["tas_comments"],
-                    $task["tas_assigned"],
-                    $task["tas_mem_login"]
-                )
+            $export_csv[] = array(
+                $task["tas_name"],
+                $task["tas_description"],
+                $task["tas_mem2_login"],
+                $priority[$idPriority],
+                $status[$idStatus],
+                phpCollab\Util::createDate($task["tas_created"], $session->get("timezone")),
+                $task["tas_start_date"],
+                $task["tas_due_date"],
+                $task["tas_complete_date"],
+                $complValue,
+                $diff,
+                $task["tas_estimated_time"],
+                $task["tas_actual_time"],
+                $statusPublish[$idPublish],
+                $task["tas_comments"],
+                $task["tas_assigned"],
+                $task["tas_mem_login"]
             );
         }
     }
